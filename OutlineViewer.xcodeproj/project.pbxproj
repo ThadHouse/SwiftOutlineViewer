@@ -11,6 +11,10 @@
 		72C28A7D27EFF428005E90B3 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72C28A7C27EFF428005E90B3 /* ContentView.swift */; };
 		72C28A7F27EFF428005E90B3 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 72C28A7E27EFF428005E90B3 /* Assets.xcassets */; };
 		72C28A8227EFF428005E90B3 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 72C28A8127EFF428005E90B3 /* Preview Assets.xcassets */; };
+		72C28A8927EFF437005E90B3 /* TableEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72C28A8827EFF437005E90B3 /* TableEntry.swift */; };
+		72D2397B27F6540100F19A7D /* NTState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72D2397A27F6540100F19A7D /* NTState.swift */; };
+		72D2397D27F6570000F19A7D /* NetworkTables.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72D2397C27F6570000F19A7D /* NetworkTables.swift */; };
+		72D2397F27F6696F00F19A7D /* EntryHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72D2397E27F6696F00F19A7D /* EntryHandler.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -19,6 +23,10 @@
 		72C28A7C27EFF428005E90B3 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		72C28A7E27EFF428005E90B3 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		72C28A8127EFF428005E90B3 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		72C28A8827EFF437005E90B3 /* TableEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TableEntry.swift; sourceTree = "<group>"; };
+		72D2397A27F6540100F19A7D /* NTState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NTState.swift; sourceTree = "<group>"; };
+		72D2397C27F6570000F19A7D /* NetworkTables.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkTables.swift; sourceTree = "<group>"; };
+		72D2397E27F6696F00F19A7D /* EntryHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntryHandler.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -55,6 +63,10 @@
 				72C28A7C27EFF428005E90B3 /* ContentView.swift */,
 				72C28A7E27EFF428005E90B3 /* Assets.xcassets */,
 				72C28A8027EFF428005E90B3 /* Preview Content */,
+				72C28A8827EFF437005E90B3 /* TableEntry.swift */,
+				72D2397A27F6540100F19A7D /* NTState.swift */,
+				72D2397C27F6570000F19A7D /* NetworkTables.swift */,
+				72D2397E27F6696F00F19A7D /* EntryHandler.swift */,
 			);
 			path = OutlineViewer;
 			sourceTree = "<group>";
@@ -137,8 +149,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				72D2397B27F6540100F19A7D /* NTState.swift in Sources */,
 				72C28A7D27EFF428005E90B3 /* ContentView.swift in Sources */,
 				72C28A7B27EFF428005E90B3 /* OutlineViewerApp.swift in Sources */,
+				72D2397F27F6696F00F19A7D /* EntryHandler.swift in Sources */,
+				72D2397D27F6570000F19A7D /* NetworkTables.swift in Sources */,
+				72C28A8927EFF437005E90B3 /* TableEntry.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

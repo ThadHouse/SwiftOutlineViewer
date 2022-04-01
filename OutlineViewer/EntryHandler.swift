@@ -1,0 +1,30 @@
+//
+//  EntryHandler.swift
+//  OutlineViewer
+//
+//  Created by Thad House on 3/31/22.
+//
+
+import Foundation
+
+protocol EntryHandler {
+    func newEntry(entryName: String, entryType: UInt8, entryId: UInt16, entryFlags: UInt8)
+    
+    func setDouble(entryId: UInt16, value: Double)
+    func setBoolean(entryId: UInt16, value: Bool)
+    func setString(entryId: UInt16, value: String)
+    
+    func setDoubleArray(entryId: UInt16, value: [Double])
+    func setBooleanArray(entryId: UInt16, value: [Bool])
+    func setStringArray(entryId: UInt16, value: [String])
+    
+    func setRaw(entryId: UInt16, value: [UInt8])
+    
+    func setRpcDefinition(entryId: UInt16, value: [UInt8])
+    
+    func entryFlagsUpdated(entryId: UInt16, newFlags: UInt8)
+    
+    func deleteEntry(entryId: UInt16)
+    
+    func deleteAllEntries()
+}
