@@ -7,8 +7,20 @@
 
 import Foundation
 
-protocol EntryHandler {
-    func newEntry(entryName: String, entryType: UInt8, entryId: UInt16, entryFlags: UInt8)
+public enum NTEntryType {
+    case Unknown
+    case Bool
+    case Double
+    case String
+    case BoolArray
+    case DoubleArray
+    case StringArray
+    case Raw
+    case Rpc
+}
+
+protocol NTEntryHandler {
+    func newEntry(entryName: String, entryType: NTEntryType, entryId: UInt16, entryFlags: UInt8)
     
     func setDouble(entryId: UInt16, value: Double)
     func setBoolean(entryId: UInt16, value: Bool)
@@ -27,4 +39,8 @@ protocol EntryHandler {
     func deleteEntry(entryId: UInt16)
     
     func deleteAllEntries()
+    
+    func onConnected()
+    
+    func onDisconnected()
 }
