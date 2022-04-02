@@ -9,6 +9,9 @@ import Foundation
 import Network
 
 public class NetworkTables3: NetworkTables {
+    var hasBeenStarted: Bool {
+        connection != nil
+    }
     
     private var connection: NWConnection!
     private let entryHandler: NTEntryHandler
@@ -178,15 +181,15 @@ public class NetworkTables3: NetworkTables {
         })
     }
     
-    private func readEntryBoolean(entryId: UInt16, entryName: String? = nil, entryFlags: UInt8? = nil) {
+    private func readEntryBoolean(entryId: UInt16, sequenceNumber: UInt16, entryName: String? = nil, entryFlags: UInt8? = nil) {
         connection.receive(minimumIncompleteLength: 1, maximumLength: 1, completion: {
             [weak self]
             data, context, complete, error in
             if let data = data, data.count == 1 {
                 if let entryFlags = entryFlags {
-                    self?.entryHandler.newEntry(entryName: entryName!, entryType: .Bool, entryId: entryId, entryFlags: entryFlags)
+                    self?.entryHandler.newEntry(entryName: entryName!, entryType: .Bool, entryId: entryId, entryFlags: entryFlags, sequenceNumber: sequenceNumber)
                 }
-                self?.entryHandler.setBoolean(entryId: entryId, value: data[0] != 0)
+                self?.entryHandler.setBoolean(entryId: entryId, sequenceNumber: sequenceNumber, value: data[0] != 0)
                 self?.readFrame()
             } else {
                 self?.connection.cancel()
@@ -194,15 +197,15 @@ public class NetworkTables3: NetworkTables {
         })
     }
     
-    private func readEntryDouble(entryId: UInt16, entryName: String? = nil, entryFlags: UInt8? = nil) {
+    private func readEntryDouble(entryId: UInt16, sequenceNumber: UInt16, entryName: String? = nil, entryFlags: UInt8? = nil) {
         connection.receive(minimumIncompleteLength: 8, maximumLength: 8, completion: {
             [weak self]
             data, context, complete, error in
             if let data = data, data.count == 8 {
                 if let entryFlags = entryFlags {
-                    self?.entryHandler.newEntry(entryName: entryName!, entryType: .Double, entryId: entryId, entryFlags: entryFlags)
+                    self?.entryHandler.newEntry(entryName: entryName!, entryType: .Double, entryId: entryId, entryFlags: entryFlags, sequenceNumber: sequenceNumber)
                 }
-                self?.entryHandler.setDouble(entryId: entryId, value: data.toDoubleBE()!)
+                self?.entryHandler.setDouble(entryId: entryId, sequenceNumber: sequenceNumber, value: data.toDoubleBE()!)
                 self?.readFrame()
             } else {
                 self?.connection.cancel()
@@ -210,31 +213,31 @@ public class NetworkTables3: NetworkTables {
         })
     }
     
-    private func readEntryString(entryId: UInt16, entryName: String? = nil, entryFlags: UInt8? = nil) {
+    private func readEntryString(entryId: UInt16, sequenceNumber: UInt16, entryName: String? = nil, entryFlags: UInt8? = nil) {
         readString(handleString: {
             [weak self]
             string in
             if let entryFlags = entryFlags {
-                self?.entryHandler.newEntry(entryName: entryName!, entryType: .String, entryId: entryId, entryFlags: entryFlags)
+                self?.entryHandler.newEntry(entryName: entryName!, entryType: .String, entryId: entryId, entryFlags: entryFlags, sequenceNumber: sequenceNumber)
             }
-            self?.entryHandler.setString(entryId: entryId, value: string)
+            self?.entryHandler.setString(entryId: entryId, sequenceNumber: sequenceNumber, value: string)
             self?.readFrame()
         })
     }
     
-    private func readEntryRaw(entryId: UInt16, entryName: String? = nil, entryFlags: UInt8? = nil) {
+    private func readEntryRaw(entryId: UInt16, sequenceNumber: UInt16, entryName: String? = nil, entryFlags: UInt8? = nil) {
         readRaw(handleRaw: {
             [weak self]
             raw in
             if let entryFlags = entryFlags {
-                self?.entryHandler.newEntry(entryName: entryName!, entryType: .Raw, entryId: entryId, entryFlags: entryFlags)
+                self?.entryHandler.newEntry(entryName: entryName!, entryType: .Raw, entryId: entryId, entryFlags: entryFlags, sequenceNumber: sequenceNumber)
             }
-            self?.entryHandler.setRaw(entryId: entryId, value: [UInt8](raw))
+            self?.entryHandler.setRaw(entryId: entryId, sequenceNumber: sequenceNumber, value: [UInt8](raw))
             self?.readFrame()
         })
     }
     
-    private func readEntryBooleanArray(entryId: UInt16, entryName: String? = nil, entryFlags: UInt8? = nil) {
+    private func readEntryBooleanArray(entryId: UInt16, sequenceNumber: UInt16, entryName: String? = nil, entryFlags: UInt8? = nil) {
         connection.receive(minimumIncompleteLength: 1, maximumLength: 1, completion: {
             [weak self]
             data, context, complete, error in
@@ -248,9 +251,9 @@ public class NetworkTables3: NetworkTables {
                             arr.append(d != 0)
                         }
                         if let entryFlags = entryFlags {
-                            self?.entryHandler.newEntry(entryName: entryName!, entryType: .BoolArray, entryId: entryId, entryFlags: entryFlags)
+                            self?.entryHandler.newEntry(entryName: entryName!, entryType: .BoolArray, entryId: entryId, entryFlags: entryFlags, sequenceNumber: sequenceNumber)
                         }
-                        self?.entryHandler.setBooleanArray(entryId: entryId, value: arr)
+                        self?.entryHandler.setBooleanArray(entryId: entryId, sequenceNumber: sequenceNumber, value: arr)
                         self?.readFrame()
                     } else {
                         self?.connection.cancel()
@@ -262,7 +265,7 @@ public class NetworkTables3: NetworkTables {
         })
     }
     
-    private func readEntryDoubleArray(entryId: UInt16, entryName: String? = nil, entryFlags: UInt8? = nil) {
+    private func readEntryDoubleArray(entryId: UInt16, sequenceNumber: UInt16, entryName: String? = nil, entryFlags: UInt8? = nil) {
         connection.receive(minimumIncompleteLength: 1, maximumLength: 1, completion: {
             [weak self]
             data, context, complete, error in
@@ -276,9 +279,9 @@ public class NetworkTables3: NetworkTables {
                             arr.append(data.toDoubleBE(range: (i * 8)...)!)
                         }
                         if let entryFlags = entryFlags {
-                            self?.entryHandler.newEntry(entryName: entryName!, entryType: .DoubleArray, entryId: entryId, entryFlags: entryFlags)
+                            self?.entryHandler.newEntry(entryName: entryName!, entryType: .DoubleArray, entryId: entryId, entryFlags: entryFlags, sequenceNumber: sequenceNumber)
                         }
-                        self?.entryHandler.setDoubleArray(entryId: entryId, value: arr)
+                        self?.entryHandler.setDoubleArray(entryId: entryId, sequenceNumber: sequenceNumber, value: arr)
                         self?.readFrame()
                     } else {
                         self?.connection.cancel()
@@ -290,7 +293,7 @@ public class NetworkTables3: NetworkTables {
         })
     }
     
-    private func readStringForArray(entryId: UInt16, stringCount: Int, data: [String], entryName: String? = nil, entryFlags: UInt8? = nil) {
+    private func readStringForArray(entryId: UInt16, sequenceNumber: UInt16, stringCount: Int, data: [String], entryName: String? = nil, entryFlags: UInt8? = nil) {
         var localData = data
         readString(handleString: {
             [weak self]
@@ -298,60 +301,60 @@ public class NetworkTables3: NetworkTables {
             localData.append(string)
             if (localData.count == stringCount) {
                 if let entryFlags = entryFlags {
-                    self?.entryHandler.newEntry(entryName: entryName!, entryType: .StringArray, entryId: entryId, entryFlags: entryFlags)
+                    self?.entryHandler.newEntry(entryName: entryName!, entryType: .StringArray, entryId: entryId, entryFlags: entryFlags, sequenceNumber: sequenceNumber)
                 }
-                self?.entryHandler.setStringArray(entryId: entryId, value: localData)
+                self?.entryHandler.setStringArray(entryId: entryId, sequenceNumber: sequenceNumber, value: localData)
                 self?.readFrame()
             } else {
-                self?.readStringForArray(entryId: entryId, stringCount: stringCount, data: localData, entryName: entryName, entryFlags: entryFlags)
+                self?.readStringForArray(entryId: entryId, sequenceNumber: sequenceNumber, stringCount: stringCount, data: localData, entryName: entryName, entryFlags: entryFlags)
             }
         })
     }
     
-    private func readEntryStringArray(entryId: UInt16, entryName: String? = nil, entryFlags: UInt8? = nil) {
+    private func readEntryStringArray(entryId: UInt16, sequenceNumber: UInt16, entryName: String? = nil, entryFlags: UInt8? = nil) {
         connection.receive(minimumIncompleteLength: 1, maximumLength: 1, completion: {
             [weak self]
             data, context, complete, error in
             if let data = data, data.count == 1 {
                 let stringCount: Int = Int(data[0])
                 let stringData: [String] = []
-                self?.readStringForArray(entryId: entryId, stringCount: stringCount, data: stringData, entryName: entryName, entryFlags: entryFlags)
+                self?.readStringForArray(entryId: entryId, sequenceNumber: sequenceNumber, stringCount: stringCount, data: stringData, entryName: entryName, entryFlags: entryFlags)
             } else {
                 self?.connection.cancel()
             }
         })
     }
     
-    private func readEntryRpc(entryId: UInt16, entryName: String? = nil, entryFlags: UInt8? = nil) {
+    private func readEntryRpc(entryId: UInt16, sequenceNumber: UInt16, entryName: String? = nil, entryFlags: UInt8? = nil) {
         readRaw(handleRaw: {
             [weak self]
             raw in
             if let entryFlags = entryFlags {
-                self?.entryHandler.newEntry(entryName: entryName!, entryType: .Rpc, entryId: entryId, entryFlags: entryFlags)
+                self?.entryHandler.newEntry(entryName: entryName!, entryType: .Rpc, entryId: entryId, entryFlags: entryFlags, sequenceNumber: sequenceNumber)
             }
-            self?.entryHandler.setRpcDefinition(entryId: entryId, value: [UInt8](raw))
+            self?.entryHandler.setRpcDefinition(entryId: entryId, sequenceNumber: sequenceNumber, value: [UInt8](raw))
             self?.readFrame()
         })
     }
     
-    private func readEntryValue(entryId: UInt16, entryType: UInt8, entryName: String? = nil, entryFlags: UInt8? = nil) {
+    private func readEntryValue(entryId: UInt16, entryType: UInt8, sequenceNumber: UInt16, entryName: String? = nil, entryFlags: UInt8? = nil) {
         switch entryType {
         case 0x00: // Boolean
-            readEntryBoolean(entryId: entryId, entryName: entryName, entryFlags: entryFlags)
+            readEntryBoolean(entryId: entryId, sequenceNumber: sequenceNumber, entryName: entryName, entryFlags: entryFlags)
         case 0x01: // Double
-            readEntryDouble(entryId: entryId, entryName: entryName, entryFlags: entryFlags)
+            readEntryDouble(entryId: entryId, sequenceNumber: sequenceNumber, entryName: entryName, entryFlags: entryFlags)
         case 0x02: // String
-            readEntryString(entryId: entryId, entryName: entryName, entryFlags: entryFlags)
+            readEntryString(entryId: entryId, sequenceNumber: sequenceNumber, entryName: entryName, entryFlags: entryFlags)
         case 0x03: // Raw
-            readEntryRaw(entryId: entryId, entryName: entryName, entryFlags: entryFlags)
+            readEntryRaw(entryId: entryId, sequenceNumber: sequenceNumber, entryName: entryName, entryFlags: entryFlags)
         case 0x10: // Boolean Array
-            readEntryBooleanArray(entryId: entryId, entryName: entryName, entryFlags: entryFlags)
+            readEntryBooleanArray(entryId: entryId, sequenceNumber: sequenceNumber, entryName: entryName, entryFlags: entryFlags)
         case 0x11: // Double Array
-            readEntryDoubleArray(entryId: entryId, entryName: entryName, entryFlags: entryFlags)
+            readEntryDoubleArray(entryId: entryId, sequenceNumber: sequenceNumber, entryName: entryName, entryFlags: entryFlags)
         case 0x12: // String Array
-            readEntryStringArray(entryId: entryId, entryName: entryName, entryFlags: entryFlags)
+            readEntryStringArray(entryId: entryId, sequenceNumber: sequenceNumber, entryName: entryName, entryFlags: entryFlags)
         case 0x20: // RPC
-            readEntryRpc(entryId: entryId, entryName: entryName, entryFlags: entryFlags)
+            readEntryRpc(entryId: entryId, sequenceNumber: sequenceNumber, entryName: entryName, entryFlags: entryFlags)
         default:
             connection.cancel()
         }
@@ -366,8 +369,9 @@ public class NetworkTables3: NetworkTables {
                 if let data = data, data.count == 6 {
                     let entryType = data[0]
                     let entryId = data.toU16BE(range: 1...)!
+                    let entrySeqNum = data.toU16BE(range: 3...)!
                     let entryFlags = data[5]
-                    self?.readEntryValue(entryId: entryId, entryType: entryType, entryName: entryName, entryFlags: entryFlags)
+                    self?.readEntryValue(entryId: entryId, entryType: entryType, sequenceNumber: entrySeqNum, entryName: entryName, entryFlags: entryFlags)
                 } else {
                     self?.connection.cancel()
                 }
@@ -381,8 +385,9 @@ public class NetworkTables3: NetworkTables {
             data, context, complete, error in
             if let data = data, data.count == 5 {
                 let entryId = data.toU16BE()!
+                let entrySeqNum = data.toU16BE(range: 2...)!
                 let entryType = data[4]
-                self?.readEntryValue(entryId: entryId, entryType: entryType)
+                self?.readEntryValue(entryId: entryId, entryType: entryType, sequenceNumber: entrySeqNum)
             } else {
                 self?.connection.cancel()
             }

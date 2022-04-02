@@ -9,6 +9,10 @@ import Foundation
 import Network
 
 class NT3WithFramer: NetworkTables {
+    var hasBeenStarted: Bool {
+        connection != nil
+    }
+    
     private var connection: NWConnection!
     private let entryHandler: NTEntryHandler
     private var host: NWEndpoint.Host? = nil
@@ -86,21 +90,48 @@ class NT3WithFramer: NetworkTables {
         })
     }
     
+    private func handleEntry(entryId: UInt16, entryType: NTEntryType, sequenceNumber: UInt16, message: NWProtocolFramer.Message) {
+        switch entryType {
+        case .Bool:
+            entryHandler.setBoolean(entryId: entryId, sequenceNumber: sequenceNumber, value: message["value"] as! Bool)
+        case .Double:
+            entryHandler.setDouble(entryId: entryId, sequenceNumber: sequenceNumber, value: message["value"] as! Double)
+        case .String:
+            entryHandler.setString(entryId: entryId, sequenceNumber: sequenceNumber, value: message["value"] as! String)
+        case .BoolArray:
+            entryHandler.setBooleanArray(entryId: entryId, sequenceNumber: sequenceNumber, value: message["value"] as! [Bool])
+        case .DoubleArray:
+            entryHandler.setDoubleArray(entryId: entryId, sequenceNumber: sequenceNumber, value: message["value"] as! [Double])
+        case .StringArray:
+            entryHandler.setStringArray(entryId: entryId, sequenceNumber: sequenceNumber, value: message["value"] as! [String])
+        case .Raw:
+            entryHandler.setRaw(entryId: entryId, sequenceNumber: sequenceNumber, value: message["value"] as! [UInt8])
+        case .Rpc:
+            entryHandler.setRpcDefinition(entryId: entryId, sequenceNumber: sequenceNumber, value: message["value"] as! [UInt8])
+        default:
+            break
+        }
+    }
+    
     private func readFrame() {
-        print("Receiving frame")
-        connection.receiveMessage {//(minimumIncompleteLength: 1, maximumLength: 1) {//(completion: 
+        connection.receiveMessage {//(minimumIncompleteLength: 1, maximumLength: 1) {//(completion:
             [weak self]
             data, context, isComplete, error in
-            print("Received")
             guard let message = context?.protocolMetadata(definition: NTProtocolFramer.definition) as? NWProtocolFramer.Message else {
                 self?.connection.cancel()
                 return
             }
             let type = message["type"] as! NT3MessageType
-            print("Type \(type)")
             
             if (type == .ServerHelloComplete) {
                 self?.writeClientHelloComplete()
+            } else if (type == .EntryAssignment) {
+                let data = message["data"] as! NT3EntryAssignment
+                self?.entryHandler.newEntry(entryName: data.entryName, entryType: data.entryType, entryId: data.entryId, entryFlags: data.entryFlags, sequenceNumber: data.entrySequenceNumber)
+                self?.handleEntry(entryId: data.entryId, entryType: data.entryType, sequenceNumber: data.entrySequenceNumber, message: message)
+            } else if (type == .EntryUpdate) {
+                let data = message["data"] as! NT3EntryUpdate
+                self?.handleEntry(entryId: data.entryId, entryType: data.entryType, sequenceNumber: data.entrySequenceNumber, message: message)
             }
             
             self?.readFrame()

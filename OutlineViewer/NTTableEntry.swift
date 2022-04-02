@@ -14,12 +14,12 @@ public class NTTableEntry: ObservableObject {
     public let displayName: String
     public let entryType: NTEntryType
     public let keyParents: [Substring]
+
     @Published public var entryFlags: UInt8
-    
-   // @Published public var children: [TableEntry]? = nil
     @Published public var value: String = ""
+    @Published public var sequenceNumber: UInt16
     
-    init(entryName: String, entryId: UInt16, entryType: NTEntryType, entryFlags: UInt8) {
+    init(entryName: String, entryId: UInt16, entryType: NTEntryType, entryFlags: UInt8, sequenceNumber: UInt16) {
         self.entryName = entryName
         self.id = entryId
         self.entryType = entryType
@@ -32,6 +32,7 @@ public class NTTableEntry: ObservableObject {
         }
         self.keyParents = entryName.split(separator: "/")
         self.entryFlags = entryFlags
+        self.sequenceNumber = sequenceNumber
     }
     
     init(fakeEntry: String) {
@@ -41,5 +42,6 @@ public class NTTableEntry: ObservableObject {
         self.entryType = .Unknown
         self.keyParents = []
         self.entryFlags = 0
+        self.sequenceNumber = 0
     }
 }

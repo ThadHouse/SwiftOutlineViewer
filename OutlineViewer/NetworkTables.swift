@@ -11,4 +11,5 @@ import Network
 protocol NetworkTables {
     func setTarget(host: String, port: String) -> Void
     func triggerReconnect() -> Void
+    var hasBeenStarted: Bool {get}
 }

@@ -34,6 +34,29 @@ enum NT3EntryType: UInt8 {
     case DoubleArray = 0x11
     case StringArray = 0x12
     case RpcDefinition = 0x20
+    
+    var ntEntryType: NTEntryType {
+        switch self {
+        case .Boolean:
+            return .Bool
+        case .Double:
+            return .Double
+        case .String:
+            return .String
+        case .Raw:
+            return .Raw
+        case .BooleanArray:
+            return .BoolArray
+        case .DoubleArray:
+            return .DoubleArray
+        case .StringArray:
+            return .StringArray
+        case .RpcDefinition:
+            return .Rpc
+        default:
+            return .Unknown
+        }
+    }
 }
 
 struct NT3ServerHello {
@@ -43,7 +66,7 @@ struct NT3ServerHello {
 
 struct NT3EntryAssignment {
     let entryName: String
-    let entryType: NT3EntryType
+    let entryType: NTEntryType
     let entryId: UInt16
     let entrySequenceNumber: UInt16
     let entryFlags: UInt8
@@ -52,7 +75,7 @@ struct NT3EntryAssignment {
 struct NT3EntryUpdate {
     let entryId: UInt16
     let entrySequenceNumber: UInt16
-    let entryType: NT3EntryType
+    let entryType: NTEntryType
 }
 
 struct NT3EntryFlagsUpdate {
@@ -383,7 +406,7 @@ final class NTProtocolFramer: NWProtocolFramerImplementation {
         metadata["data"] =
             NT3EntryAssignment(
                 entryName: entryAssignmentStorage.entryName.string!,
-                entryType: entryAssignmentStorage.value.entryType,
+                entryType: entryAssignmentStorage.value.entryType.ntEntryType,
                 entryId: entryAssignmentStorage.entryId,
                 entrySequenceNumber: entryAssignmentStorage.entrySequenceNumber,
                 entryFlags: entryAssignmentStorage.entryFlags)
@@ -423,7 +446,7 @@ final class NTProtocolFramer: NWProtocolFramerImplementation {
             NT3EntryUpdate(
                 entryId: entryUpdateStorage.entryId,
                 entrySequenceNumber: entryUpdateStorage.entrySequenceNumber,
-                entryType: entryUpdateStorage.value.entryType)
+                entryType: entryUpdateStorage.value.entryType.ntEntryType)
         metadata["value"] = entryUpdateStorage.value.toValue()
         
         framer.deliverInput(data: Data([NT3MessageType.EntryUpdate.rawValue]), message: metadata, isComplete: true)
@@ -435,11 +458,6 @@ final class NTProtocolFramer: NWProtocolFramerImplementation {
 
     func handleInput(framer: NWProtocolFramer.Instance) -> Int {
         while !failed {
-            framer.parseInput(minimumIncompleteLength: 0, maximumLength: 65535) {
-                buffer, complete in
-                print("Have \(buffer?.count)")
-                return 0
-            }
             if messageTypeStore == nil {
                 _ = framer.parseInput(minimumIncompleteLength: 1, maximumLength: 1) {
                     buffer, complete in
@@ -452,7 +470,6 @@ final class NTProtocolFramer: NWProtocolFramerImplementation {
             guard let messageType = messageTypeStore else {
                 return 1
             }
-            print("Reading message \(messageType)")
             var moreData: Int? = nil
             switch messageType {
             case .KeepAlive:

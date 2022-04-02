@@ -30,7 +30,7 @@ class NTConnectionHandler: ObservableObject, NTEntryHandler {
         refreshEntries()
     }
     
-    func newEntry(entryName: String, entryType: NTEntryType, entryId: UInt16, entryFlags: UInt8) {
+    func newEntry(entryName: String, entryType: NTEntryType, entryId: UInt16, entryFlags: UInt8, sequenceNumber: UInt16) {
         if let entry = entryDictionaryString[entryName] {
             entryDictionaryString.removeValue(forKey: entryName)
             entryDictionaryInt.removeValue(forKey: entry.id)
@@ -38,54 +38,57 @@ class NTConnectionHandler: ObservableObject, NTEntryHandler {
         if (!entryName.starts(with: "/")) {
             return
         }
-        let newEntry = NTTableEntry(entryName: entryName, entryId: entryId, entryType: entryType, entryFlags: entryFlags)
+        let newEntry = NTTableEntry(entryName: entryName, entryId: entryId, entryType: entryType, entryFlags: entryFlags, sequenceNumber: sequenceNumber)
         if (newEntry.keyParents.isEmpty) {
             return
         }
         addEntry(entry: newEntry)
     }
     
-    func setDouble(entryId: UInt16, value: Double) {
-        if let entry = entryDictionaryInt[entryId] {
-            if (entry.entryType == .Bool) {
-                entry.value = "\(value)"
-            }
-        }
-    }
-    
-    func setBoolean(entryId: UInt16, value: Bool) {
+    func setDouble(entryId: UInt16, sequenceNumber: UInt16, value: Double) {
         if let entry = entryDictionaryInt[entryId] {
             if (entry.entryType == .Double) {
                 entry.value = "\(value)"
+                entry.sequenceNumber = sequenceNumber
             }
         }
     }
     
-    func setString(entryId: UInt16, value: String) {
+    func setBoolean(entryId: UInt16, sequenceNumber: UInt16, value: Bool) {
+        if let entry = entryDictionaryInt[entryId] {
+            if (entry.entryType == .Bool) {
+                entry.value = "\(value)"
+                entry.sequenceNumber = sequenceNumber
+            }
+        }
+    }
+    
+    func setString(entryId: UInt16, sequenceNumber: UInt16, value: String) {
         if let entry = entryDictionaryInt[entryId] {
             if (entry.entryType == .String) {
                 entry.value = "\(value)"
+                entry.sequenceNumber = sequenceNumber
             }
         }
     }
     
-    func setDoubleArray(entryId: UInt16, value: [Double]) {
+    func setDoubleArray(entryId: UInt16, sequenceNumber: UInt16, value: [Double]) {
         
     }
     
-    func setBooleanArray(entryId: UInt16, value: [Bool]) {
+    func setBooleanArray(entryId: UInt16, sequenceNumber: UInt16, value: [Bool]) {
         
     }
     
-    func setStringArray(entryId: UInt16, value: [String]) {
+    func setStringArray(entryId: UInt16, sequenceNumber: UInt16, value: [String]) {
         
     }
     
-    func setRaw(entryId: UInt16, value: [UInt8]) {
+    func setRaw(entryId: UInt16, sequenceNumber: UInt16, value: [UInt8]) {
         
     }
     
-    func setRpcDefinition(entryId: UInt16, value: [UInt8]) {
+    func setRpcDefinition(entryId: UInt16, sequenceNumber: UInt16, value: [UInt8]) {
         
     }
     
@@ -141,6 +144,12 @@ class NTConnectionHandler: ObservableObject, NTEntryHandler {
     func setTarget() {
         nt.setTarget(host: host, port: port)
         nt.triggerReconnect()
+    }
+    
+    func setTargetFirstTime() {
+        if !nt.hasBeenStarted {
+            setTarget()
+        }
     }
     
     @Published var items: [NTEntryTree] = []

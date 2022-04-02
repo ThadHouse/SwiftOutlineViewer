@@ -16,6 +16,7 @@ struct EditorView: View {
             Text("Id: \(entry.id)")
             Text("Value: \(entry.value)")
             Text("Flags: \(String(entry.entryFlags, radix: 2))")
+            Text("SeqNum: 0x\(String(entry.sequenceNumber, radix: 16))")
         }
     }
 }
@@ -63,6 +64,9 @@ struct ContentView: View {
                 }
             }
             .ignoresSafeArea(edges: .bottom)
+            .onAppear {
+                nt.setTargetFirstTime()
+            }
         }
     }
 }
