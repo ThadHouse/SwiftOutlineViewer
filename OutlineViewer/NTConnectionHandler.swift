@@ -153,6 +153,6 @@ class NTConnectionHandler: ObservableObject, NTEntryHandler {
     var nt: NetworkTables!
     
     init() {
-        nt = NetworkTables3(entryHandler: self)
+        nt = NT3WithFramer(entryHandler: self)
     }
 }
