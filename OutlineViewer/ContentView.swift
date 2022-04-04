@@ -30,29 +30,14 @@ struct SelectorView: View {
 }
 
 struct ContentView: View {
+    var startNt = true
+    @State private var navigateToSettings = false
 
-    @StateObject var nt = NTConnectionHandler()
+    @StateObject var nt: ConnectionHandler = NTConnectionHandler()
     
     var body: some View {
         NavigationView {
             VStack {
-                NavigationLink("Settings") {
-                    VStack {
-                        Text("Host")
-                        TextField(
-                            "Host",
-                            text: $nt.host)
-                        .multilineTextAlignment(.center)
-                        Text("Port")
-                        TextField(
-                            "Port", text: $nt.port)
-                        .multilineTextAlignment(.center)
-                        Button("Update") {
-                            nt.setTarget()
-                        }
-                    }
-                }
-                Text(nt.connected ? "Connected" : "Disconnected")
                 List(nt.items, children: \.children) {entry in
                     if entry.children != nil {
                         SelectorView(entry: entry.value)
@@ -62,10 +47,33 @@ struct ContentView: View {
                         }
                     }
                 }
+                NavigationLink(destination: SettingsView(nt: nt.settings),
+                               isActive: $navigateToSettings,
+                               label: {})
             }
             .ignoresSafeArea(edges: .bottom)
+            .navigationTitle("OutlineViewer")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    if nt.connected {
+                        Image(systemName: "circle.fill")
+                            .foregroundColor(.green)
+                    } else {
+                        Image(systemName: "circle")
+                            .foregroundColor(.red)
+                    }
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: { navigateToSettings = true }) {
+                        Text("Settings")
+                    }
+                }
+            }
             .onAppear {
-                nt.setTargetFirstTime()
+                if (startNt) {
+                    nt.startConnectionInitial()
+                }
             }
         }
     }
@@ -73,6 +81,6 @@ struct ContentView: View {
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        ContentView()
+        ContentView(startNt: false)
     }
 }

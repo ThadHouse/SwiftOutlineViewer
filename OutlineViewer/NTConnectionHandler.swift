@@ -8,7 +8,7 @@
 import Foundation
 import SwiftUI
 
-class NTConnectionHandler: ObservableObject, NTEntryHandler {
+class NTConnectionHandler: ConnectionHandler, NTEntryHandler {
     func onConnected() {
         connected = true
         entryDictionaryInt.removeAll()
@@ -16,9 +16,14 @@ class NTConnectionHandler: ObservableObject, NTEntryHandler {
         refreshEntries()
     }
     
+    private var doReconnect = false
+    
     func onDisconnected() {
         connected = false
-        nt.triggerReconnect()
+        nt = nil
+        if (doReconnect) {
+            startConnectionInternal()
+        }
     }
     
     var entryDictionaryInt: Dictionary<UInt16, NTTableEntry> = Dictionary<UInt16, NTTableEntry>()
@@ -108,7 +113,7 @@ class NTConnectionHandler: ObservableObject, NTEntryHandler {
         
         if (entryDictionaryInt.count != entryDictionaryString.count) {
             // Disconnect, bad state
-            nt.triggerReconnect()
+            self.restartConnection()
         } else {
             refreshEntries()
         }
@@ -141,27 +146,82 @@ class NTConnectionHandler: ObservableObject, NTEntryHandler {
         }
     }
     
-    func setTarget() {
-        nt.setTarget(host: host, port: port)
-        nt.triggerReconnect()
+    func startConnectionInternal() {
+        assert(nt == nil)
+        doReconnect = false
+        nt = NetworkTables3(host: settings.host, port: settings.port)
+        guard var nt = nt else {
+            assertionFailure()
+            return
+        }
+        nt.eventHandler = {
+            [weak self]
+            event in
+            guard let self = self else {
+                return
+            }
+            switch event {
+                
+            case .connected:
+                self.onConnected()
+            case .disconnected:
+                self.onDisconnected()
+            case .newEntry(let entry):
+                self.newEntry(entryName: entry.entryName, entryType: entry.entryType, entryId: entry.entryId, entryFlags: entry.entryFlags, sequenceNumber: entry.seqNum)
+            case .updateBool(let entry):
+                self.setBoolean(entryId: entry.entryId, sequenceNumber: entry.seqNum, value: entry.value)
+            case .updateDouble(let entry):
+                self.setDouble(entryId: entry.entryId, sequenceNumber: entry.seqNum, value: entry.value)
+            case .updateString(let entry):
+                self.setString(entryId: entry.entryId, sequenceNumber: entry.seqNum, value: entry.value)
+            case .updateBoolArray(let entry):
+                self.setBooleanArray(entryId: entry.entryId, sequenceNumber: entry.seqNum, value: entry.value)
+            case .updateDoubleArray(let entry):
+                self.setDoubleArray(entryId: entry.entryId, sequenceNumber: entry.seqNum, value: entry.value)
+            case .updateStringArray(let entry):
+                self.setStringArray(entryId: entry.entryId, sequenceNumber: entry.seqNum, value: entry.value)
+            case .updateRaw(let entry):
+                self.setRaw(entryId: entry.entryId, sequenceNumber: entry.seqNum, value: entry.value)
+            case .updateRpcDefinition(let entry):
+                self.setRpcDefinition(entryId: entry.entryId, sequenceNumber: entry.seqNum, value: entry.value)
+            case .updateFlag(let entry):
+                self.entryFlagsUpdated(entryId: entry.entryId, newFlags: entry.flags)
+            case .deleteEntry(let entry):
+                self.deleteEntry(entryId: entry.entryId)
+            case .deleteAllEntries:
+                self.deleteAllEntries()
+            }
+        }
+        nt.start(queue: DispatchQueue.main)
     }
     
-    func setTargetFirstTime() {
-        if !nt.hasBeenStarted {
-            setTarget()
+    override func restartConnection() {
+        if let nt = nt {
+            doReconnect = true
+            nt.stop()
+        } else {
+            startConnectionInternal()
         }
     }
     
-    @Published var items: [NTEntryTree] = []
+    override func startConnectionInitial() {
+        startConnectionInternal()
+    }
     
-    @Published var connected: Bool = false
+    override func stopConnection() {
+        if let nt = nt {
+            doReconnect = false
+            nt.stop()
+        } else {
+            startConnectionInternal()
+        }
+    }
     
-    @AppStorage("HostName") var host: String = "localhost"
-    @AppStorage("Port") var port: String = "1735"
+    var nt: NetworkTables?
     
-    var nt: NetworkTables!
-    
-    init() {
-        nt = NT3WithFramer(entryHandler: self)
+    override init() {
+        super.init()
+        settings = ConnectionSettings(connectionCreator: self)
+
     }
 }

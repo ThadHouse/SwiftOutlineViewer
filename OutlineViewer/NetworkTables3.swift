@@ -9,33 +9,14 @@ import Foundation
 import Network
 
 public class NetworkTables3: NetworkTables {
-    var hasBeenStarted: Bool {
-        connection != nil
-    }
     
-    private var connection: NWConnection!
-    private let entryHandler: NTEntryHandler
-    private var host: NWEndpoint.Host? = nil
-    private var port: NWEndpoint.Port? = nil
+    private let connection: NWConnection
+    private let host: NWEndpoint.Host
+    private let port: NWEndpoint.Port
     
-    init(entryHandler: NTEntryHandler) {
-        self.entryHandler = entryHandler
-    }
-    
-    func setTarget(host: String, port: String) {
+    init(host: String, port: String) {
         self.host = NWEndpoint.Host(host)
         self.port = NWEndpoint.Port(port)!
-    }
-    
-    func triggerReconnect() {
-        if let connection = connection {
-            connection.cancel()
-        } else {
-            startConnection()
-        }
-    }
-    
-    private func startConnection() {
         let params = NWParameters.tcp
         let ip = params.defaultProtocolStack.internetProtocol! as! NWProtocolIP.Options
         ip.version = .v4
@@ -43,39 +24,38 @@ public class NetworkTables3: NetworkTables {
         tcp.connectionTimeout = 2
         tcp.noDelay = true
         
-        connection = NWConnection(host: host!, port: port!, using: params)
+        connection = NWConnection(host: self.host, port: self.port, using: params)
+    }
+    
+    var eventHandler: ((_ event: NetworkTableEvent) -> Void)? = nil
+    
+    func start(queue: DispatchQueue) {
+        
         connection.stateUpdateHandler = {
             [weak self]
             state in
             print("state: \(state)")
             switch (state) {
             case .ready:
-                self?.entryHandler.onConnected()
+                self?.eventHandler!(.connected)
                 self?.writeClientHello()
             case .waiting:
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                     self?.connection.cancel()
                 }
             case .cancelled:
-                self?.entryHandler.onDisconnected()
-                self?.startConnection()
+                self?.eventHandler!(.disconnected)
                 break;
             default:
                 break
             }
         }
         readFrame()
-        connection.start(queue: DispatchQueue.main)
+        connection.start(queue: queue)
     }
     
-    private func writeKeepAlive() {
-        connection.send(content: [0x00], completion: .contentProcessed {
-            [weak self]
-            error in
-            if (error != nil) {
-                self?.connection.cancel()
-            }
-        })
+    func stop() {
+        connection.cancel()
     }
     
     private func writeClientHello() {
@@ -187,9 +167,9 @@ public class NetworkTables3: NetworkTables {
             data, context, complete, error in
             if let data = data, data.count == 1 {
                 if let entryFlags = entryFlags {
-                    self?.entryHandler.newEntry(entryName: entryName!, entryType: .Bool, entryId: entryId, entryFlags: entryFlags, sequenceNumber: sequenceNumber)
+                    self?.eventHandler!(.newEntry(NewEntryEvent(entryName: entryName!, entryType: .Bool, entryId: entryId, entryFlags: entryFlags, seqNum: sequenceNumber)))
                 }
-                self?.entryHandler.setBoolean(entryId: entryId, sequenceNumber: sequenceNumber, value: data[0] != 0)
+                self?.eventHandler!(.updateBool(DataEvent(entryId: entryId, seqNum: sequenceNumber, value: data[0] != 0)))
                 self?.readFrame()
             } else {
                 self?.connection.cancel()
@@ -203,9 +183,9 @@ public class NetworkTables3: NetworkTables {
             data, context, complete, error in
             if let data = data, data.count == 8 {
                 if let entryFlags = entryFlags {
-                    self?.entryHandler.newEntry(entryName: entryName!, entryType: .Double, entryId: entryId, entryFlags: entryFlags, sequenceNumber: sequenceNumber)
+                    self?.eventHandler!(.newEntry(NewEntryEvent(entryName: entryName!, entryType: .Double, entryId: entryId, entryFlags: entryFlags, seqNum: sequenceNumber)))
                 }
-                self?.entryHandler.setDouble(entryId: entryId, sequenceNumber: sequenceNumber, value: data.toDoubleBE()!)
+                self?.eventHandler!(.updateDouble(DataEvent(entryId: entryId, seqNum: sequenceNumber, value: data.toDoubleBE()!)))
                 self?.readFrame()
             } else {
                 self?.connection.cancel()
@@ -218,9 +198,9 @@ public class NetworkTables3: NetworkTables {
             [weak self]
             string in
             if let entryFlags = entryFlags {
-                self?.entryHandler.newEntry(entryName: entryName!, entryType: .String, entryId: entryId, entryFlags: entryFlags, sequenceNumber: sequenceNumber)
+                self?.eventHandler!(.newEntry(NewEntryEvent(entryName: entryName!, entryType: .String, entryId: entryId, entryFlags: entryFlags, seqNum: sequenceNumber)))
             }
-            self?.entryHandler.setString(entryId: entryId, sequenceNumber: sequenceNumber, value: string)
+            self?.eventHandler!(.updateString(DataEvent(entryId: entryId, seqNum: sequenceNumber, value: string)))
             self?.readFrame()
         })
     }
@@ -230,9 +210,9 @@ public class NetworkTables3: NetworkTables {
             [weak self]
             raw in
             if let entryFlags = entryFlags {
-                self?.entryHandler.newEntry(entryName: entryName!, entryType: .Raw, entryId: entryId, entryFlags: entryFlags, sequenceNumber: sequenceNumber)
+                self?.eventHandler!(.newEntry(NewEntryEvent(entryName: entryName!, entryType: .Raw, entryId: entryId, entryFlags: entryFlags, seqNum: sequenceNumber)))
             }
-            self?.entryHandler.setRaw(entryId: entryId, sequenceNumber: sequenceNumber, value: [UInt8](raw))
+            self?.eventHandler!(.updateRaw(DataEvent(entryId: entryId, seqNum: sequenceNumber, value: [UInt8](raw))))
             self?.readFrame()
         })
     }
@@ -251,9 +231,9 @@ public class NetworkTables3: NetworkTables {
                             arr.append(d != 0)
                         }
                         if let entryFlags = entryFlags {
-                            self?.entryHandler.newEntry(entryName: entryName!, entryType: .BoolArray, entryId: entryId, entryFlags: entryFlags, sequenceNumber: sequenceNumber)
+                            self?.eventHandler!(.newEntry(NewEntryEvent(entryName: entryName!, entryType: .BoolArray, entryId: entryId, entryFlags: entryFlags, seqNum: sequenceNumber)))
                         }
-                        self?.entryHandler.setBooleanArray(entryId: entryId, sequenceNumber: sequenceNumber, value: arr)
+                        self?.eventHandler!(.updateBoolArray(DataEvent(entryId: entryId, seqNum: sequenceNumber, value: arr)))
                         self?.readFrame()
                     } else {
                         self?.connection.cancel()
@@ -279,9 +259,9 @@ public class NetworkTables3: NetworkTables {
                             arr.append(data.toDoubleBE(range: (i * 8)...)!)
                         }
                         if let entryFlags = entryFlags {
-                            self?.entryHandler.newEntry(entryName: entryName!, entryType: .DoubleArray, entryId: entryId, entryFlags: entryFlags, sequenceNumber: sequenceNumber)
+                            self?.eventHandler!(.newEntry(NewEntryEvent(entryName: entryName!, entryType: .DoubleArray, entryId: entryId, entryFlags: entryFlags, seqNum: sequenceNumber)))
                         }
-                        self?.entryHandler.setDoubleArray(entryId: entryId, sequenceNumber: sequenceNumber, value: arr)
+                        self?.eventHandler!(.updateDoubleArray(DataEvent(entryId: entryId, seqNum: sequenceNumber, value: arr)))
                         self?.readFrame()
                     } else {
                         self?.connection.cancel()
@@ -301,9 +281,9 @@ public class NetworkTables3: NetworkTables {
             localData.append(string)
             if (localData.count == stringCount) {
                 if let entryFlags = entryFlags {
-                    self?.entryHandler.newEntry(entryName: entryName!, entryType: .StringArray, entryId: entryId, entryFlags: entryFlags, sequenceNumber: sequenceNumber)
+                    self?.eventHandler!(.newEntry(NewEntryEvent(entryName: entryName!, entryType: .StringArray, entryId: entryId, entryFlags: entryFlags, seqNum: sequenceNumber)))
                 }
-                self?.entryHandler.setStringArray(entryId: entryId, sequenceNumber: sequenceNumber, value: localData)
+                self?.eventHandler!(.updateStringArray(DataEvent(entryId: entryId, seqNum: sequenceNumber, value: localData)))
                 self?.readFrame()
             } else {
                 self?.readStringForArray(entryId: entryId, sequenceNumber: sequenceNumber, stringCount: stringCount, data: localData, entryName: entryName, entryFlags: entryFlags)
@@ -330,9 +310,9 @@ public class NetworkTables3: NetworkTables {
             [weak self]
             raw in
             if let entryFlags = entryFlags {
-                self?.entryHandler.newEntry(entryName: entryName!, entryType: .Rpc, entryId: entryId, entryFlags: entryFlags, sequenceNumber: sequenceNumber)
+                self?.eventHandler!(.newEntry(NewEntryEvent(entryName: entryName!, entryType: .Rpc, entryId: entryId, entryFlags: entryFlags, seqNum: sequenceNumber)))
             }
-            self?.entryHandler.setRpcDefinition(entryId: entryId, sequenceNumber: sequenceNumber, value: [UInt8](raw))
+            self?.eventHandler!(.updateRpcDefinition(DataEvent(entryId: entryId, seqNum: sequenceNumber, value: [UInt8](raw))))
             self?.readFrame()
         })
     }
@@ -401,7 +381,7 @@ public class NetworkTables3: NetworkTables {
             if let data = data, data.count == 3 {
                 let entryId = data.toU16BE()!
                 let entryFlags = data[2]
-                self?.entryHandler.entryFlagsUpdated(entryId: entryId, newFlags: entryFlags)
+                self?.eventHandler!(.updateFlag(FlagUpdate(entryId: entryId, flags: entryFlags)))
                 self?.readFrame()
             } else {
                 self?.connection.cancel()
@@ -414,7 +394,7 @@ public class NetworkTables3: NetworkTables {
             [weak self]
             data, context, complete, error in
             if let data = data, data.count == 2 {
-                self?.entryHandler.deleteEntry(entryId: data.toU16BE()!)
+                self?.eventHandler!(.deleteEntry(DeleteEntry(entryId: data.toU16BE()!)))
                 self?.readFrame()
             } else {
                 self?.connection.cancel()
@@ -428,7 +408,7 @@ public class NetworkTables3: NetworkTables {
             data, context, complete, error in
             if let data = data, data.count == 4 {
                 if (data[0] == 0xD0 && data[1] == 0x6C && data[2] == 0xB2 && data[3] == 0x7A) {
-                    self?.entryHandler.deleteAllEntries()
+                    self?.eventHandler!(.deleteAllEntries)
                 }
                 self?.readFrame()
             } else {

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		722DE1A327F813A100CBEB2F /* NetworkTables4.swift in Sources */ = {isa = PBXBuildFile; fileRef = 722DE1A227F813A100CBEB2F /* NetworkTables4.swift */; };
 		7286BBDF27F7629600DCDA93 /* DataExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7286BBDE27F7629600DCDA93 /* DataExtensions.swift */; };
 		7286BBE127F762B400DCDA93 /* NetworkTables.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7286BBE027F762B400DCDA93 /* NetworkTables.swift */; };
 		7286BBE327F7703200DCDA93 /* NTConnectionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7286BBE227F7703200DCDA93 /* NTConnectionHandler.swift */; };
@@ -20,9 +21,14 @@
 		72C28A8927EFF437005E90B3 /* NTTableEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72C28A8827EFF437005E90B3 /* NTTableEntry.swift */; };
 		72D2397D27F6570000F19A7D /* NetworkTables3.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72D2397C27F6570000F19A7D /* NetworkTables3.swift */; };
 		72D2397F27F6696F00F19A7D /* NTEntryHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72D2397E27F6696F00F19A7D /* NTEntryHandler.swift */; };
+		72F02BD427FA72D8004870A1 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72F02BD327FA72D8004870A1 /* SettingsView.swift */; };
+		72F02BD627FA736C004870A1 /* ConnectionSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72F02BD527FA736C004870A1 /* ConnectionSettings.swift */; };
+		72F02BD827FA744A004870A1 /* ConnectionCreator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72F02BD727FA744A004870A1 /* ConnectionCreator.swift */; };
+		72F02BDB27FA7DC4004870A1 /* ConnectionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72F02BDA27FA7DC4004870A1 /* ConnectionHandler.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		722DE1A227F813A100CBEB2F /* NetworkTables4.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkTables4.swift; sourceTree = "<group>"; };
 		7286BBDE27F7629600DCDA93 /* DataExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataExtensions.swift; sourceTree = "<group>"; };
 		7286BBE027F762B400DCDA93 /* NetworkTables.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkTables.swift; sourceTree = "<group>"; };
 		7286BBE227F7703200DCDA93 /* NTConnectionHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NTConnectionHandler.swift; sourceTree = "<group>"; };
@@ -37,6 +43,10 @@
 		72C28A8827EFF437005E90B3 /* NTTableEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NTTableEntry.swift; sourceTree = "<group>"; };
 		72D2397C27F6570000F19A7D /* NetworkTables3.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkTables3.swift; sourceTree = "<group>"; };
 		72D2397E27F6696F00F19A7D /* NTEntryHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NTEntryHandler.swift; sourceTree = "<group>"; };
+		72F02BD327FA72D8004870A1 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		72F02BD527FA736C004870A1 /* ConnectionSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionSettings.swift; sourceTree = "<group>"; };
+		72F02BD727FA744A004870A1 /* ConnectionCreator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionCreator.swift; sourceTree = "<group>"; };
+		72F02BDA27FA7DC4004870A1 /* ConnectionHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionHandler.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -82,6 +92,11 @@
 				7286BBE427F7706900DCDA93 /* NTEntryTree.swift */,
 				7286BBE627F786A900DCDA93 /* NTProtocolFramer.swift */,
 				7286BBE827F7A36F00DCDA93 /* NT3WithFramer.swift */,
+				722DE1A227F813A100CBEB2F /* NetworkTables4.swift */,
+				72F02BD327FA72D8004870A1 /* SettingsView.swift */,
+				72F02BD527FA736C004870A1 /* ConnectionSettings.swift */,
+				72F02BD727FA744A004870A1 /* ConnectionCreator.swift */,
+				72F02BDA27FA7DC4004870A1 /* ConnectionHandler.swift */,
 			);
 			path = OutlineViewer;
 			sourceTree = "<group>";
@@ -164,17 +179,22 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				72F02BDB27FA7DC4004870A1 /* ConnectionHandler.swift in Sources */,
 				72C28A7D27EFF428005E90B3 /* ContentView.swift in Sources */,
 				72C28A7B27EFF428005E90B3 /* OutlineViewerApp.swift in Sources */,
+				72F02BD827FA744A004870A1 /* ConnectionCreator.swift in Sources */,
 				7286BBE127F762B400DCDA93 /* NetworkTables.swift in Sources */,
 				72D2397F27F6696F00F19A7D /* NTEntryHandler.swift in Sources */,
+				72F02BD627FA736C004870A1 /* ConnectionSettings.swift in Sources */,
 				7286BBE727F786A900DCDA93 /* NTProtocolFramer.swift in Sources */,
 				7286BBE327F7703200DCDA93 /* NTConnectionHandler.swift in Sources */,
 				7286BBE527F7706900DCDA93 /* NTEntryTree.swift in Sources */,
 				7286BBDF27F7629600DCDA93 /* DataExtensions.swift in Sources */,
+				722DE1A327F813A100CBEB2F /* NetworkTables4.swift in Sources */,
 				72D2397D27F6570000F19A7D /* NetworkTables3.swift in Sources */,
 				7286BBE927F7A36F00DCDA93 /* NT3WithFramer.swift in Sources */,
 				72C28A8927EFF437005E90B3 /* NTTableEntry.swift in Sources */,
+				72F02BD427FA72D8004870A1 /* SettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

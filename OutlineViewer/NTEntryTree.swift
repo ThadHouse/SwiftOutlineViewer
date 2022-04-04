@@ -35,6 +35,5 @@ class NTEntryTree: Identifiable {
         }
         children!.append(NTEntryTree(id: root, value: NTTableEntry(fakeEntry: root)))
         children![children!.count - 1].insertEntry(entry: entry, depth: depth + 1)
-        print(children!.count)
     }
 }
