@@ -78,6 +78,105 @@ public class NetworkTables3: NetworkTables {
         })
     }
     
+    private func readByteAsync() async throws -> UInt8 {
+        return try await withCheckedThrowingContinuation {
+            continuation in
+            
+            connection.receive(minimumIncompleteLength: 1, maximumLength: 1, completion: {
+                data, context, complete, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                if let data = data, data.count == 1 {
+                    continuation.resume(returning: data[0])
+                } else {
+                    continuation.resume(throwing: POSIXError(POSIXErrorCode.EINVAL))
+                }
+            })
+        }
+    }
+    
+    private func readDataAsync(length: Int) async throws -> Data {
+        return try await withCheckedThrowingContinuation {
+            continuation in
+            
+            connection.receive(minimumIncompleteLength: length, maximumLength: length, completion: {
+                data, context, complete, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                if let data = data, data.count == length {
+                    continuation.resume(returning: data)
+                } else {
+                    continuation.resume(throwing: POSIXError(POSIXErrorCode.EINVAL))
+                }
+            })
+        }
+    }
+    
+    private func readBytesAsync(length: Int) async throws -> [UInt8] {
+        return try await withCheckedThrowingContinuation {
+            continuation in
+            
+            connection.receive(minimumIncompleteLength: length, maximumLength: length, completion: {
+                data, context, complete, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                if let data = data, data.count == length {
+                    continuation.resume(returning: [UInt8](data))
+                } else {
+                    continuation.resume(throwing: POSIXError(POSIXErrorCode.EINVAL))
+                }
+            })
+        }
+    }
+    
+    private func readStringWithLengthAsync(length: Int) async throws -> String {
+        return try await withCheckedThrowingContinuation {
+            continuation in
+            
+            connection.receive(minimumIncompleteLength: length, maximumLength: length, completion: {
+                data, context, complete, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                if let data = data, data.count == length {
+                    let string = String(data: data, encoding: .utf8)
+                    if let string = string {
+                        continuation.resume(returning: string)
+                    } else {
+                        continuation.resume(throwing: POSIXError(POSIXErrorCode.EINVAL))
+                    }
+                } else {
+                    continuation.resume(throwing: POSIXError(POSIXErrorCode.EINVAL))
+                }
+            })
+        }
+    }
+    
+    private func readLEB128Async() async throws -> Int {
+        var result: UInt64 = 0;
+        var shift: Int = 0;
+        while (true) {
+            let byte = try await readByteAsync()
+            result |= UInt64(byte & 0x7f) << shift;
+            shift += 7;
+
+            if ((byte & 0x80) == 0) {
+              break;
+            }
+        }
+        if (result > Int.max) {
+            throw POSIXError(POSIXErrorCode.E2BIG)
+        }
+        return Int(result)
+    }
+    
     private func readLEB128Internal(value: UInt64, shift: Int, afterFunc: @escaping (_ length: Int) -> Void) {
         var localValue = value
         var localShift = shift
@@ -124,6 +223,16 @@ public class NetworkTables3: NetworkTables {
         })
     }
     
+    private func readRawAsync() async throws -> [UInt8] {
+        let length = try await readLEB128Async()
+        return try await readBytesAsync(length: length)
+    }
+    
+    private func readStringAsync() async throws -> String {
+        let length = try await readLEB128Async()
+        return try await readStringWithLengthAsync(length: length)
+    }
+    
     private func readString(handleString: @escaping (_ value: String) -> Void) -> Void {
         readLEB128(afterFunc: {
             [weak self]
@@ -145,6 +254,11 @@ public class NetworkTables3: NetworkTables {
         })
     }
     
+    private func readServerHelloAsync() async throws {
+        _ = try await readByteAsync()
+        _ = try await readStringAsync()
+    }
+    
     private func readServerHello() {
         connection.receive(minimumIncompleteLength: 1, maximumLength: 1, completion: {
             [weak self]
@@ -160,6 +274,8 @@ public class NetworkTables3: NetworkTables {
             }
         })
     }
+    
+    
     
     private func readEntryBoolean(entryId: UInt16, sequenceNumber: UInt16, entryName: String? = nil, entryFlags: UInt8? = nil) {
         connection.receive(minimumIncompleteLength: 1, maximumLength: 1, completion: {
@@ -317,6 +433,36 @@ public class NetworkTables3: NetworkTables {
         })
     }
     
+    private func readEntryBooleanAsync(entryId: UInt16, entryType: UInt8, sequenceNumber: UInt16, entryName: String? = nil, entryFlags: UInt8? = nil) async throws -> NetworkTableEvent {
+        let value = try await readByteAsync()
+        if let entryName = entryName, let entryFlags = entryFlags {
+        }
+        return .updateBool(DataEvent(entryId: entryId, seqNum: sequenceNumber, value: value))
+    }
+    
+    private func readEntryValueAsync(entryId: UInt16, entryType: UInt8, sequenceNumber: UInt16, entryName: String? = nil, entryFlags: UInt8? = nil) async throws -> NetworkTableEvent {
+        switch entryType {
+        case 0x00: // Boolean
+            return readEntryBooleanAsync(entryId: entryId, sequenceNumber: sequenceNumber, entryName: entryName, entryFlags: entryFlags)
+        case 0x01: // Double
+            return readEntryDoubleAsync(entryId: entryId, sequenceNumber: sequenceNumber, entryName: entryName, entryFlags: entryFlags)
+        case 0x02: // String
+            return readEntryStringAsync(entryId: entryId, sequenceNumber: sequenceNumber, entryName: entryName, entryFlags: entryFlags)
+        case 0x03: // Raw
+            return readEntryRawAsync(entryId: entryId, sequenceNumber: sequenceNumber, entryName: entryName, entryFlags: entryFlags)
+        case 0x10: // Boolean Array
+            return readEntryBooleanArrayAsync(entryId: entryId, sequenceNumber: sequenceNumber, entryName: entryName, entryFlags: entryFlags)
+        case 0x11: // Double Array
+            return readEntryDoubleArrayAsync(entryId: entryId, sequenceNumber: sequenceNumber, entryName: entryName, entryFlags: entryFlags)
+        case 0x12: // String Array
+            return readEntryStringArrayAsync(entryId: entryId, sequenceNumber: sequenceNumber, entryName: entryName, entryFlags: entryFlags)
+        case 0x20: // RPC
+            return readEntryRpcAsync(entryId: entryId, sequenceNumber: sequenceNumber, entryName: entryName, entryFlags: entryFlags)
+        default:
+            throw POSIXError(POSIXErrorCode.EINVAL)
+        }
+    }
+    
     private func readEntryValue(entryId: UInt16, entryType: UInt8, sequenceNumber: UInt16, entryName: String? = nil, entryFlags: UInt8? = nil) {
         switch entryType {
         case 0x00: // Boolean
@@ -340,6 +486,16 @@ public class NetworkTables3: NetworkTables {
         }
     }
     
+    private func readEntryAssignmentAsync() async throws -> NetworkTableEvent {
+        let entryName = try await readStringAsync()
+        let data = try await readDataAsync(length: 6)
+        let entryType = data[0]
+        let entryId = data.toU16BE(range: 1...)!
+        let entrySeqNum = data.toU16BE(range: 3...)!
+        let entryFlags = data[5]
+        return try await readEntryValueAsync(entryId: entryId, entryType: entryType, sequenceNumber: entrySeqNum, entryName: entryName, entryFlags: entryFlags)
+    }
+    
     private func readEntryAssignment() {
         readString(handleString: {
             [weak self]
@@ -359,6 +515,14 @@ public class NetworkTables3: NetworkTables {
         })
     }
     
+    private func readEntryUpdateAsync() async throws -> NetworkTableEvent {
+        let data = try await readDataAsync(length: 5)
+        let entryId = data.toU16BE()!
+        let entrySeqNum = data.toU16BE(range: 2...)!
+        let entryType = data[4]
+        return try await readEntryValueAsync(entryId: entryId, entryType: entryType, sequenceNumber: entrySeqNum)
+    }
+    
     private func readEntryUpdate() {
         connection.receive(minimumIncompleteLength: 5, maximumLength: 5, completion: {
             [weak self]
@@ -372,6 +536,13 @@ public class NetworkTables3: NetworkTables {
                 self?.connection.cancel()
             }
         })
+    }
+    
+    private func readEntryFlagsUpdateAsync() async throws -> NetworkTableEvent {
+        let data = try await readDataAsync(length: 3)
+        let entryId = data.toU16BE()!
+        let entryFlags = data[2]
+        return .updateFlag(FlagUpdate(entryId: entryId, flags: entryFlags))
     }
     
     private func readEntryFlagsUpdate() {
@@ -389,6 +560,11 @@ public class NetworkTables3: NetworkTables {
         })
     }
     
+    private func readEntryDeleteAsync() async throws -> NetworkTableEvent {
+        let data = try await readDataAsync(length: 4)
+        return .deleteEntry(DeleteEntry(entryId: data.toU16BE()!))
+    }
+    
     private func readEntryDelete() {
         connection.receive(minimumIncompleteLength: 4, maximumLength: 4, completion: {
             [weak self]
@@ -400,6 +576,15 @@ public class NetworkTables3: NetworkTables {
                 self?.connection.cancel()
             }
         })
+    }
+    
+    private func readClearAllEntriesAsync() async throws -> NetworkTableEvent {
+        let data = try await readDataAsync(length: 4)
+        if (data[0] == 0xD0 && data[1] == 0x6C && data[2] == 0xB2 && data[3] == 0x7A) {
+            return .deleteAllEntries
+        } else {
+            return .continueReading
+        }
     }
     
     private func readClearAllEntries() {
@@ -417,6 +602,14 @@ public class NetworkTables3: NetworkTables {
         })
     }
     
+    private func readRpcResponseAsync() async throws -> NetworkTableEvent {
+        let data = try await readDataAsync(length: 4)
+        let entryId = data.toU16BE()!
+        let entrySeqNum = data.toU16BE(range: 2...)!
+        let rpc = try await readRawAsync()
+        return .updateRpcDefinition(DataEvent(entryId: entryId, seqNum: entrySeqNum, value: rpc))
+    }
+    
     private func readRpcResponse() {
         connection.receive(minimumIncompleteLength: 4, maximumLength: 4, completion: {
             [weak self]
@@ -430,6 +623,34 @@ public class NetworkTables3: NetworkTables {
                 self?.connection.cancel()
             }
         })
+    }
+    
+    private func readFrameAsync() async throws -> NetworkTableEvent {
+        let type = try await readByteAsync()
+        switch type {
+        case 0x00: // Keep Alive
+            return .continueReading
+        case 0x03: // Server Hello Complete
+            self.writeClientHelloComplete()
+            return .connected
+        case 0x04: // Server Hello
+            try await readServerHelloAsync()
+            return .continueReading
+        case 0x10: // Entry assignment
+            return try await readEntryAssignmentAsync()
+        case 0x11:
+            return try await readEntryUpdateAsync()
+        case 0x12:
+            return try await readEntryFlagsUpdateAsync()
+        case 0x13:
+            return try await readEntryDeleteAsync()
+        case 0x14:
+            return try await readClearAllEntriesAsync()
+        case 0x21:
+            return try await readRpcResponseAsync()
+        default:
+            throw POSIXError(POSIXErrorCode.EINVAL)
+        }
     }
     
     private func readFrame() {

@@ -8,6 +8,18 @@
 import Foundation
 import Network
 
+public enum NTEntryType {
+    case Unknown
+    case Bool(Bool)
+    case Double(Double)
+    case String(String)
+    case BoolArray([Bool])
+    case DoubleArray([Double])
+    case StringArray([String])
+    case Raw([UInt8])
+    case Rpc([UInt8])
+}
+
 struct NewEntryEvent {
     let entryName: String
     let entryType: NTEntryType
@@ -16,10 +28,10 @@ struct NewEntryEvent {
     let seqNum: UInt16
 }
 
-struct DataEvent<T> {
+struct EntryUpdateEvent {
+    let entryType: NTEntryType
     let entryId: UInt16
     let seqNum: UInt16
-    let value: T
 }
 
 struct FlagUpdate {
@@ -35,18 +47,13 @@ enum NetworkTableEvent {
     case connected
     case disconnected
     case newEntry(NewEntryEvent)
-    case updateBool(DataEvent<Bool>)
-    case updateDouble(DataEvent<Double>)
-    case updateString(DataEvent<String>)
-    case updateBoolArray(DataEvent<[Bool]>)
-    case updateDoubleArray(DataEvent<[Double]>)
-    case updateStringArray(DataEvent<[String]>)
-    case updateRaw(DataEvent<[UInt8]>)
-    case updateRpcDefinition(DataEvent<[UInt8]>)
+    case updateEntry(EntryUpdateEvent)
     case updateFlag(FlagUpdate)
     case deleteEntry(DeleteEntry)
     case deleteAllEntries
+    case continueReading
 }
+
 
 protocol NetworkTables {
     func start(queue: DispatchQueue) -> Void

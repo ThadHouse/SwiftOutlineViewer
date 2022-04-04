@@ -7,18 +7,6 @@
 
 import Foundation
 
-public enum NTEntryType {
-    case Unknown
-    case Bool
-    case Double
-    case String
-    case BoolArray
-    case DoubleArray
-    case StringArray
-    case Raw
-    case Rpc
-}
-
 protocol NTEntryHandler {
     func newEntry(entryName: String, entryType: NTEntryType, entryId: UInt16, entryFlags: UInt8, sequenceNumber: UInt16)
     
