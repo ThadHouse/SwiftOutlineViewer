@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import Network
 
 public enum NTEntryType {
     case Unknown
@@ -18,6 +17,35 @@ public enum NTEntryType {
     case StringArray([String])
     case Raw([UInt8])
     case Rpc([UInt8])
+}
+
+func !=(lhs: NTEntryType, rhs: NTEntryType) -> Bool {
+    return !(lhs == rhs)
+}
+
+func ==(lhs: NTEntryType, rhs: NTEntryType) -> Bool {
+    switch (lhs, rhs) {
+    case (.Unknown, .Unknown):
+        return true
+    case (.Bool(_), .Bool(_)):
+        return true
+    case ( .Double(_),  .Double(_)):
+        return true
+    case ( .String(_),  .String(_)):
+        return true
+    case ( .BoolArray(_),  .BoolArray(_)):
+        return true
+    case ( .DoubleArray(_),  .DoubleArray(_)):
+        return true
+    case ( .StringArray(_),  .StringArray(_)):
+        return true
+    case ( .Raw(_),  .Raw(_)):
+        return true
+    case ( .Rpc(_),  .Rpc(_)):
+        return true
+    default:
+        return false
+    }
 }
 
 struct NewEntryEvent {
@@ -59,5 +87,5 @@ protocol NetworkTables {
     func start(queue: DispatchQueue) -> Void
     func stop() -> Void
     
-    var eventHandler: ((_ event: NetworkTableEvent) -> Void)? {get set}
+    func readFrameAsync() async throws -> NetworkTableEvent
 }

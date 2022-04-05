@@ -16,14 +16,8 @@ class NTConnectionHandler: ConnectionHandler, NTEntryHandler {
         refreshEntries()
     }
     
-    private var doReconnect = false
-    
     func onDisconnected() {
         connected = false
-        nt = nil
-        if (doReconnect) {
-            startConnectionInternal()
-        }
     }
     
     var entryDictionaryInt: Dictionary<UInt16, NTTableEntry> = Dictionary<UInt16, NTTableEntry>()
@@ -52,7 +46,7 @@ class NTConnectionHandler: ConnectionHandler, NTEntryHandler {
     
     func setDouble(entryId: UInt16, sequenceNumber: UInt16, value: Double) {
         if let entry = entryDictionaryInt[entryId] {
-            if (entry.entryType == .Double) {
+            if (entry.entryType == .Double(0)) {
                 entry.value = "\(value)"
                 entry.sequenceNumber = sequenceNumber
             }
@@ -61,7 +55,7 @@ class NTConnectionHandler: ConnectionHandler, NTEntryHandler {
     
     func setBoolean(entryId: UInt16, sequenceNumber: UInt16, value: Bool) {
         if let entry = entryDictionaryInt[entryId] {
-            if (entry.entryType == .Bool) {
+            if (entry.entryType == .Bool(false)) {
                 entry.value = "\(value)"
                 entry.sequenceNumber = sequenceNumber
             }
@@ -70,7 +64,7 @@ class NTConnectionHandler: ConnectionHandler, NTEntryHandler {
     
     func setString(entryId: UInt16, sequenceNumber: UInt16, value: String) {
         if let entry = entryDictionaryInt[entryId] {
-            if (entry.entryType == .String) {
+            if (entry.entryType == .String("")) {
                 entry.value = "\(value)"
                 entry.sequenceNumber = sequenceNumber
             }
@@ -99,9 +93,7 @@ class NTConnectionHandler: ConnectionHandler, NTEntryHandler {
     
     func entryFlagsUpdated(entryId: UInt16, newFlags: UInt8) {
         if let entry = entryDictionaryInt[entryId] {
-            if (entry.entryType == .String) {
-                entry.entryFlags = newFlags
-            }
+            entry.entryFlags = newFlags
         }
     }
     
@@ -146,78 +138,66 @@ class NTConnectionHandler: ConnectionHandler, NTEntryHandler {
         }
     }
     
-    func startConnectionInternal() {
-        assert(nt == nil)
-        doReconnect = false
-        nt = NetworkTables3(host: settings.host, port: settings.port)
-        guard var nt = nt else {
-            assertionFailure()
-            return
-        }
-        nt.eventHandler = {
-            [weak self]
-            event in
-            guard let self = self else {
-                return
-            }
-            switch event {
-                
-            case .connected:
-                self.onConnected()
-            case .disconnected:
-                self.onDisconnected()
-            case .newEntry(let entry):
-                self.newEntry(entryName: entry.entryName, entryType: entry.entryType, entryId: entry.entryId, entryFlags: entry.entryFlags, sequenceNumber: entry.seqNum)
-            case .updateBool(let entry):
-                self.setBoolean(entryId: entry.entryId, sequenceNumber: entry.seqNum, value: entry.value)
-            case .updateDouble(let entry):
-                self.setDouble(entryId: entry.entryId, sequenceNumber: entry.seqNum, value: entry.value)
-            case .updateString(let entry):
-                self.setString(entryId: entry.entryId, sequenceNumber: entry.seqNum, value: entry.value)
-            case .updateBoolArray(let entry):
-                self.setBooleanArray(entryId: entry.entryId, sequenceNumber: entry.seqNum, value: entry.value)
-            case .updateDoubleArray(let entry):
-                self.setDoubleArray(entryId: entry.entryId, sequenceNumber: entry.seqNum, value: entry.value)
-            case .updateStringArray(let entry):
-                self.setStringArray(entryId: entry.entryId, sequenceNumber: entry.seqNum, value: entry.value)
-            case .updateRaw(let entry):
-                self.setRaw(entryId: entry.entryId, sequenceNumber: entry.seqNum, value: entry.value)
-            case .updateRpcDefinition(let entry):
-                self.setRpcDefinition(entryId: entry.entryId, sequenceNumber: entry.seqNum, value: entry.value)
-            case .updateFlag(let entry):
-                self.entryFlagsUpdated(entryId: entry.entryId, newFlags: entry.flags)
-            case .deleteEntry(let entry):
-                self.deleteEntry(entryId: entry.entryId)
-            case .deleteAllEntries:
-                self.deleteAllEntries()
-            }
-        }
+    private var runTask: Task<(), Never>?
+    
+    @MainActor func runConnection() async {
+        let nt = NetworkTables3(host: settings.host, port: settings.port)
         nt.start(queue: DispatchQueue.main)
+        do {
+            while (!Task.isCancelled) {
+                let event = try await nt.readFrameAsync()
+                switch event {
+                case .connected:
+                    onConnected()
+                case .disconnected:
+                    onDisconnected()
+                    nt.stop()
+                    return
+                case .newEntry(let newEntryEvent):
+                    self.newEntry(entryName: newEntryEvent.entryName, entryType: newEntryEvent.entryType, entryId: newEntryEvent.entryId, entryFlags: newEntryEvent.entryFlags, sequenceNumber: newEntryEvent.seqNum)
+                    break
+                case .updateEntry(let entryUpdateEvent):
+                    if let entry = entryDictionaryInt[entryUpdateEvent.entryId] {
+                        entry.update(event: entryUpdateEvent)
+                    }
+                    break
+                case .updateFlag(let flagUpdate):
+                    entryFlagsUpdated(entryId: flagUpdate.entryId, newFlags: flagUpdate.flags)
+                case .deleteEntry(let deleteEntry):
+                    self.deleteEntry(entryId: deleteEntry.entryId)
+                case .deleteAllEntries:
+                    deleteAllEntries()
+                case .continueReading:
+                    break
+                }
+            }
+        } catch (let err) {
+            print("err \(err)")
+        }
+        connected = false
+        nt.stop()
+    }
+    
+    @MainActor func connectionLoop(oldRunTask: Task<(), Never>?) async {
+        _ = await oldRunTask?.result
+        while (!Task.isCancelled) {
+            await runConnection()
+        }
     }
     
     override func restartConnection() {
-        if let nt = nt {
-            doReconnect = true
-            nt.stop()
-        } else {
-            startConnectionInternal()
+        let oldRunTask = runTask
+        oldRunTask?.cancel()
+        runTask = Task {
+            await connectionLoop(oldRunTask: oldRunTask)
         }
-    }
-    
-    override func startConnectionInitial() {
-        startConnectionInternal()
     }
     
     override func stopConnection() {
-        if let nt = nt {
-            doReconnect = false
-            nt.stop()
-        } else {
-            startConnectionInternal()
-        }
+        runTask?.cancel()
     }
     
-    var nt: NetworkTables?
+   // var nt: NetworkTables?
     
     override init() {
         super.init()

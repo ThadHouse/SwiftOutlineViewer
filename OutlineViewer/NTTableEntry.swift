@@ -12,7 +12,7 @@ public class NTTableEntry: ObservableObject {
     public let id: UInt16
     public let entryName: String
     public let displayName: String
-    public let entryType: NTEntryType
+    public var entryType: NTEntryType
     public let keyParents: [Substring]
 
     @Published public var entryFlags: UInt8
@@ -43,5 +43,35 @@ public class NTTableEntry: ObservableObject {
         self.keyParents = []
         self.entryFlags = 0
         self.sequenceNumber = 0
+    }
+    
+    func update(event: EntryUpdateEvent) {
+        if (entryType != event.entryType) {
+            return
+        }
+        entryType = event.entryType
+        sequenceNumber = event.seqNum
+        switch entryType {
+        case .Unknown:
+            value = "Unknown"
+        case .Bool(let bool):
+            value = "\(bool)"
+        case .Double(let double):
+            value = "\(double)"
+        case .String(let string):
+            value = "\(string)"
+        default:
+            value = "Array"
+//        case .BoolArray(let array):
+//            value = "\(bool)"
+//        case .DoubleArray(let array):
+//            value = "\(bool)"
+//        case .StringArray(let array):
+//            value = "\(bool)"
+//        case .Raw(let array):
+//            value = "\(bool)"
+//        case .Rpc(let array):
+//            value = "\(bool)"
+        }
     }
 }

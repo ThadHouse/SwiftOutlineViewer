@@ -72,7 +72,7 @@ struct ContentView: View {
             }
             .onAppear {
                 if (startNt) {
-                    nt.startConnectionInitial()
+                    nt.restartConnection()
                 }
             }
         }

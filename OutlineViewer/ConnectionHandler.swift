@@ -14,10 +14,6 @@ class ConnectionHandler: ObservableObject, ConnectionCreator {
     
     var settings: ConnectionSettings!
     
-    func startConnectionInitial() {
-        assertionFailure()
-    }
-    
     func stopConnection() {
         assertionFailure()
     }

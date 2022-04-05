@@ -9,6 +9,10 @@ import Foundation
 import Network
 
 class NetworkTables4 : NetworkTables {
+    func readFrameAsync() async throws -> NetworkTableEvent {
+        return .continueReading
+    }
+    
     func start(queue: DispatchQueue) {
         
     }
