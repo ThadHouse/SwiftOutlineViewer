@@ -14,25 +14,40 @@ struct SettingsView: View {
     var body: some View {
         VStack {
             VStack {
-                Text("Connection")
-                    .font(.largeTitle)
+                HStack {
+                    Text("Connection")
+                        .font(.largeTitle)
+                    Image(systemName: nt.connected ? "circle.fill" : "circle")
+                        .foregroundColor(nt.connected ? .green : .red)
+                }
                 Text("Host")
                     .bold()
                 TextField(
                     "Host",
                     text: $nt.host)
+                .textFieldStyle(.roundedBorder)
+                .padding(.horizontal)
                 .multilineTextAlignment(.center)
                 Text("Port")
                     .bold()
                 TextField(
                     "Port", text: $nt.port)
+                .textFieldStyle(.roundedBorder)
+                .padding(.horizontal)
                 .multilineTextAlignment(.center)
-                Button("Update") {
-                    nt.restartConnection()
+                HStack {
+                    Button("Update") {
+                        nt.restartConnection()
+                    }
+                    .padding()
+                    .buttonStyle(.bordered)
+                    Button("Disconnect") {
+                        nt.stopConnection()
+                    }
+                    .padding()
+                    .buttonStyle(.bordered)
                 }
-                Button("Disconnect") {
-                    nt.stopConnection()
-                }
+                Spacer()
             }
         }
     }

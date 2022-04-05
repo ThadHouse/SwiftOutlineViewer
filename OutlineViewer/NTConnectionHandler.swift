@@ -23,12 +23,13 @@ class NTConnectionHandler: ConnectionHandler {//, NTEntryHandler {
     
     func onConnected() {
         connected = true
-        // TODO Pinned Entries
+        settings.connected = true
         entryDictionaryStringBackup.removeAll(keepingCapacity: true)
     }
     
     func onDisconnected() {
         connected = false
+        settings.connected = false
     }
     
     var entryDictionaryInt: Dictionary<UInt16, NTTableEntry> = Dictionary<UInt16, NTTableEntry>()
@@ -116,49 +117,60 @@ class NTConnectionHandler: ConnectionHandler {//, NTEntryHandler {
     private var runTask: Task<(), Never>?
     
     @MainActor func runConnection() async {
-        let nt = NetworkTables3(host: settings.host, port: settings.port)
+        let nt = NetworkTables3(host: settings.getHost(), port: settings.port)
         nt.start(queue: DispatchQueue.main)
-        do {
-            while (!Task.isCancelled) {
-                let event = try await nt.readFrameAsync()
-                switch event {
-                case .startingInitialEntries:
-                    onStartingInitialEntries()
-                case .connected:
-                    onConnected()
-                case .disconnected:
-                    onDisconnected()
-                    nt.stop()
-                    return
-                case .newEntry(let newEntryEvent):
-                    self.newEntry(entryName: newEntryEvent.entryName, entryType: newEntryEvent.entryType, entryId: newEntryEvent.entryId, entryFlags: newEntryEvent.entryFlags, sequenceNumber: newEntryEvent.seqNum)
-                    break
-                case .updateEntry(let entryUpdateEvent):
-                    if let entry = entryDictionaryInt[entryUpdateEvent.entryId] {
-                        entry.update(event: entryUpdateEvent)
+        await withTaskCancellationHandler {
+            do {
+                while (!Task.isCancelled) {
+                    let event = try await nt.readFrameAsync()
+                    switch event {
+                    case .startingInitialEntries:
+                        onStartingInitialEntries()
+                    case .connected:
+                        onConnected()
+                    case .disconnected:
+                        onDisconnected()
+                        nt.stop()
+                        return
+                    case .newEntry(let newEntryEvent):
+                        self.newEntry(entryName: newEntryEvent.entryName, entryType: newEntryEvent.entryType, entryId: newEntryEvent.entryId, entryFlags: newEntryEvent.entryFlags, sequenceNumber: newEntryEvent.seqNum)
+                        break
+                    case .updateEntry(let entryUpdateEvent):
+                        if let entry = entryDictionaryInt[entryUpdateEvent.entryId] {
+                            entry.update(event: entryUpdateEvent)
+                        }
+                        break
+                    case .updateFlag(let flagUpdate):
+                        entryFlagsUpdated(entryId: flagUpdate.entryId, newFlags: flagUpdate.flags)
+                    case .deleteEntry(let deleteEntry):
+                        self.deleteEntry(entryId: deleteEntry.entryId)
+                    case .deleteAllEntries:
+                        deleteAllEntries()
+                    case .continueReading:
+                        break
                     }
-                    break
-                case .updateFlag(let flagUpdate):
-                    entryFlagsUpdated(entryId: flagUpdate.entryId, newFlags: flagUpdate.flags)
-                case .deleteEntry(let deleteEntry):
-                    self.deleteEntry(entryId: deleteEntry.entryId)
-                case .deleteAllEntries:
-                    deleteAllEntries()
-                case .continueReading:
-                    break
                 }
+            } catch (let err) {
+                print("err \(err)")
             }
-        } catch (let err) {
-            print("err \(err)")
+            connected = false
+            settings.connected = false
+            nt.stop()
+        } onCancel: {
+            nt.stop()
         }
-        connected = false
-        nt.stop()
     }
     
     @MainActor func connectionLoop(oldRunTask: Task<(), Never>?) async {
         _ = await oldRunTask?.result
         while (!Task.isCancelled) {
             await runConnection()
+        }
+    }
+    
+    override func startConnectionInitial() {
+        if (runTask == nil) {
+            restartConnection()
         }
     }
     

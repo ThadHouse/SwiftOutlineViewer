@@ -9,6 +9,7 @@ import Foundation
 import SwiftUI
 
 protocol ConnectionCreator {
+    func startConnectionInitial() -> Void
     func restartConnection() -> Void
     func stopConnection() -> Void
 }
@@ -19,6 +20,10 @@ public class MockConnectionCreator: ConnectionCreator {
     }
     
     func stopConnection() {
+        
+    }
+    
+    func startConnectionInitial() {
         
     }
     

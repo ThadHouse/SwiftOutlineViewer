@@ -19,6 +19,10 @@ class ConnectionHandler: ObservableObject, ConnectionCreator {
         assertionFailure()
     }
     
+    func startConnectionInitial() {
+        assertionFailure()
+    }
+    
     init() {
         settings = ConnectionSettings(connectionCreator: self)
     }

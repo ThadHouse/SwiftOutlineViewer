@@ -47,14 +47,16 @@ struct ContentView: View {
                         }
                     }
                 }
+                .listStyle(.grouped)
                 NavigationLink(destination: SettingsView(nt: nt.settings),
                                isActive: $navigateToSettings,
                                label: {})
             }
             .ignoresSafeArea(edges: .bottom)
-            .navigationTitle("OutlineViewer")
-            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text("OutlineViewer")
+                }
                 ToolbarItem(placement: .navigationBarLeading) {
                     if nt.connected {
                         Image(systemName: "circle.fill")
@@ -72,7 +74,7 @@ struct ContentView: View {
             }
             .onAppear {
                 if (startNt) {
-                    nt.restartConnection()
+                    nt.startConnectionInitial()
                 }
             }
         }
