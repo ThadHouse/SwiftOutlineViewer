@@ -9,11 +9,21 @@ import Foundation
 import SwiftUI
 
 class NTConnectionHandler: ConnectionHandler, NTEntryHandler {
+    
+    func onStartingInitialEntries() {
+        entryDictionaryInt.removeAll()
+        entryDictionaryStringBackup.removeAll()
+        
+        let tempString = entryDictionaryStringBackup
+        entryDictionaryStringBackup = entryDictionaryString
+        entryDictionaryString = tempString
+
+        refreshEntries()
+    }
+    
     func onConnected() {
         connected = true
-        entryDictionaryInt.removeAll()
-        entryDictionaryString.removeAll()
-        refreshEntries()
+        entryDictionaryStringBackup.removeAll()
     }
     
     func onDisconnected() {
@@ -23,6 +33,8 @@ class NTConnectionHandler: ConnectionHandler, NTEntryHandler {
     var entryDictionaryInt: Dictionary<UInt16, NTTableEntry> = Dictionary<UInt16, NTTableEntry>()
     var entryDictionaryString: Dictionary<String, NTTableEntry> = Dictionary<String, NTTableEntry>()
     
+    var entryDictionaryStringBackup: Dictionary<String, NTTableEntry> = Dictionary<String, NTTableEntry>()
+    
     func addEntry(entry: NTTableEntry) {
         entryDictionaryInt[entry.id] = entry
         entryDictionaryString[entry.entryName] = entry
@@ -30,6 +42,15 @@ class NTConnectionHandler: ConnectionHandler, NTEntryHandler {
     }
     
     func newEntry(entryName: String, entryType: NTEntryType, entryId: UInt16, entryFlags: UInt8, sequenceNumber: UInt16) {
+        // Check to see if existing entries
+        let previousEntry = entryDictionaryStringBackup.removeValue(forKey: entryName)
+        if let previousEntry = previousEntry {
+            previousEntry.updateFromNewConnection(entryName: entryName, entryType: entryType, entryId: entryId, entryFlags: entryFlags, sequenceNumber: sequenceNumber)
+            addEntry(entry: previousEntry)
+            return
+        }
+        
+        
         if let entry = entryDictionaryString[entryName] {
             entryDictionaryString.removeValue(forKey: entryName)
             entryDictionaryInt.removeValue(forKey: entry.id)
@@ -147,6 +168,8 @@ class NTConnectionHandler: ConnectionHandler, NTEntryHandler {
             while (!Task.isCancelled) {
                 let event = try await nt.readFrameAsync()
                 switch event {
+                case .startingInitialEntries:
+                    onStartingInitialEntries()
                 case .connected:
                     onConnected()
                 case .disconnected:

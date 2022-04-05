@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 
 public class NTTableEntry: ObservableObject {
-    public let id: UInt16
+    @Published public var id: UInt16
     public let entryName: String
     public let displayName: String
     public var entryType: NTEntryType
@@ -43,6 +43,13 @@ public class NTTableEntry: ObservableObject {
         self.keyParents = []
         self.entryFlags = 0
         self.sequenceNumber = 0
+    }
+    
+    func updateFromNewConnection(entryName: String, entryType: NTEntryType, entryId: UInt16, entryFlags: UInt8, sequenceNumber: UInt16) {
+        self.entryType = entryType
+        self.id = entryId
+        self.entryFlags = entryFlags
+        update(event: EntryUpdateEvent(entryType: entryType, entryId: entryId, seqNum: sequenceNumber))
     }
     
     func update(event: EntryUpdateEvent) {

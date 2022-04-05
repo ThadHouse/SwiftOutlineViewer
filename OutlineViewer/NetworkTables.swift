@@ -72,6 +72,7 @@ struct DeleteEntry {
 }
 
 enum NetworkTableEvent {
+    case startingInitialEntries
     case connected
     case disconnected
     case newEntry(NewEntryEvent)

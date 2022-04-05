@@ -363,10 +363,10 @@ public class NetworkTables3: NetworkTables {
             return .continueReading
         case 0x03: // Server Hello Complete
             self.writeClientHelloComplete()
-            return .continueReading
+            return .connected
         case 0x04: // Server Hello
             try await readServerHelloAsync()
-            return .connected
+            return .startingInitialEntries
         case 0x10: // Entry assignment
             return try await readEntryAssignmentAsync()
         case 0x11:
