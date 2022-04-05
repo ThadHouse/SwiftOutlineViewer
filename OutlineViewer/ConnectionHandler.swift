@@ -9,6 +9,7 @@ import Foundation
 
 class ConnectionHandler: ObservableObject, ConnectionCreator {
     @Published var items: [NTEntryTree] = []
+    @Published var pinnedList: [NTTableEntry] = []
     
     @Published var connected: Bool = false
     

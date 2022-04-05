@@ -8,11 +8,11 @@
 import Foundation
 import SwiftUI
 
-class NTConnectionHandler: ConnectionHandler, NTEntryHandler {
+class NTConnectionHandler: ConnectionHandler {//, NTEntryHandler {
     
     func onStartingInitialEntries() {
-        entryDictionaryInt.removeAll()
-        entryDictionaryStringBackup.removeAll()
+        entryDictionaryInt.removeAll(keepingCapacity: true)
+        entryDictionaryStringBackup.removeAll(keepingCapacity: true)
         
         let tempString = entryDictionaryStringBackup
         entryDictionaryStringBackup = entryDictionaryString
@@ -23,7 +23,8 @@ class NTConnectionHandler: ConnectionHandler, NTEntryHandler {
     
     func onConnected() {
         connected = true
-        entryDictionaryStringBackup.removeAll()
+        // TODO Pinned Entries
+        entryDictionaryStringBackup.removeAll(keepingCapacity: true)
     }
     
     func onDisconnected() {
@@ -63,53 +64,6 @@ class NTConnectionHandler: ConnectionHandler, NTEntryHandler {
             return
         }
         addEntry(entry: newEntry)
-    }
-    
-    func setDouble(entryId: UInt16, sequenceNumber: UInt16, value: Double) {
-        if let entry = entryDictionaryInt[entryId] {
-            if (entry.entryType == .Double(0)) {
-                entry.value = "\(value)"
-                entry.sequenceNumber = sequenceNumber
-            }
-        }
-    }
-    
-    func setBoolean(entryId: UInt16, sequenceNumber: UInt16, value: Bool) {
-        if let entry = entryDictionaryInt[entryId] {
-            if (entry.entryType == .Bool(false)) {
-                entry.value = "\(value)"
-                entry.sequenceNumber = sequenceNumber
-            }
-        }
-    }
-    
-    func setString(entryId: UInt16, sequenceNumber: UInt16, value: String) {
-        if let entry = entryDictionaryInt[entryId] {
-            if (entry.entryType == .String("")) {
-                entry.value = "\(value)"
-                entry.sequenceNumber = sequenceNumber
-            }
-        }
-    }
-    
-    func setDoubleArray(entryId: UInt16, sequenceNumber: UInt16, value: [Double]) {
-        
-    }
-    
-    func setBooleanArray(entryId: UInt16, sequenceNumber: UInt16, value: [Bool]) {
-        
-    }
-    
-    func setStringArray(entryId: UInt16, sequenceNumber: UInt16, value: [String]) {
-        
-    }
-    
-    func setRaw(entryId: UInt16, sequenceNumber: UInt16, value: [UInt8]) {
-        
-    }
-    
-    func setRpcDefinition(entryId: UInt16, sequenceNumber: UInt16, value: [UInt8]) {
-        
     }
     
     func entryFlagsUpdated(entryId: UInt16, newFlags: UInt8) {
