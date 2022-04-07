@@ -66,6 +66,21 @@ extension Data {
         self = Swift.withUnsafeBytes(of: value) { Data($0) }
     }
     
+    func to<T>(type: T.Type) -> T? where T: ExpressibleByIntegerLiteral {
+        var value: T = 0
+        guard count >= MemoryLayout.size(ofValue: value) else { return nil }
+        _ = Swift.withUnsafeMutableBytes(of: &value, { copyBytes(to: $0)} )
+        return value
+    }
+    
+    func to<T, R>(type: T.Type, range: R) -> T? where T: ExpressibleByIntegerLiteral, R: RangeExpression, Self.Index == R.Bound {
+        var value: T = 0
+        guard count >= MemoryLayout.size(ofValue: value) else { return nil }
+        _ = Swift.withUnsafeMutableBytes(of: &value, { copyBytes(to: $0, from: range)} )
+        return value
+    }
+    
+    
     func toU16BE() -> UInt16? {
         var value: UInt16 = 0
         guard count >= MemoryLayout.size(ofValue: value) else { return nil }
