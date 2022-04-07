@@ -70,6 +70,7 @@ public class AsyncNWConnection {
     private class MultiSuccessState {
         var wasSuccessful = false
         var connections: [AsyncNWConnection] = []
+        var failedCount = 0
     }
     
     static func tryConnectAsync(queue: DispatchQueue, timeout: Double, to endpoints:[NWEndpoint], using params: NWParameters) async -> AsyncNWConnection? {
@@ -85,6 +86,11 @@ public class AsyncNWConnection {
                             return
                         }
                         if (!result) {
+                            state.failedCount += 1
+                            if (state.failedCount == state.connections.count) {
+                                state.wasSuccessful = true
+                                continuation.resume(returning: nil)
+                            }
                             return
                         }
                         state.wasSuccessful = true
